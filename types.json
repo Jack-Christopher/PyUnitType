@@ -1,0 +1,62 @@
+{
+  "bool":[
+    "not", "and", "or"
+  ],
+  "int":[
+    "add", "sub", "mul", "div", "mod", "sqrt", "log", "exp", "pow", 
+    "ceil", "floor", "trunc", "round", "abs", "fabs", 
+    "sinh", "cosh", "tanh", 
+    "bitwise_and", "bitwise_or", "bitwise_xor", "bitwise_not", "left_shift", "right_shift",
+    "eq", "ne", "lt", "le", "gt", "ge"
+  ],
+  "float":[
+    "add", "sub", "mul", "div", "mod", "sqrt", 
+    "sin", "cos", "log", "exp", "pow", 
+    "ceil", "floor", "trunc", "round", "abs", "fabs", 
+    "sinh", "cosh", "tanh",
+    "eq", "ne", "lt", "le", "gt", "ge"
+  ],
+  "string":[
+    "concat", "replace", 
+    "upper", "lower", "format", "isupper", "islower", "capitalize", "title", "swapcase", 
+    "startswith", "endswith", 
+    "join", "split", "strip", 
+    "partition", "rpartition", 
+    "count", "find", "rfind", "index", "rindex", 
+    "isalpha", "isdigit", "isalnum", "isspace", "isdecimal", "isnumeric", "isidentifier", "isprintable", "istitle", 
+    "ljust", "rjust", "center", "lstrip", "rstrip", "zfill", "expandtabs"
+  ],
+  "complex":[
+    "add", "sub", "mul", "div", "mod", "sqrt", 
+    "log", "exp", "pow", 
+    "ceil", "floor", "trunc", "round", "abs", "fabs", 
+    "sinh", "cosh", "tanh", "real", "imag", "conjugate"
+  ],
+  "list":[
+    "append", "extend", "pop", "remove", "clear", 
+    "sort", "copy", "reverse", "insert", "filter", "map", "reduce", "index", "count",
+    "reverse", "sort"
+  ],
+  "dict":[
+    "keys", "values", "items", "get", "pop", "popitem", 
+    "update", "clear", "copy", "fromkeys"
+  ],
+  "set":[
+    "add", "remove", "discard", "clear", "union", "intersection", "difference", "symmetric_difference", 
+    "copy", "isdisjoint", "issubset", "issuperset", "pop", "remove", "discard", "clear", 
+    "union", "intersection", "difference", "symmetric_difference", "copy", "isdisjoint", "issubset", "issuperset"
+  ],
+  "tuple":[
+    "count", "index", "filter", "map", "reduce"
+  ],
+  "bytes":[
+    "decode", "fromhex", "hex", "join", "split", "strip", 
+    "format", "ljust", "rjust", "center", "lstrip", "rstrip", "zfill", 
+    "expandtabs", "translate", "maketrans", "casefold", "translate", "maketrans"
+  ],
+  "bytearray":[
+    "decode", "fromhex", "hex", "join", "split", "strip", 
+    "format", "ljust", "rjust", "center", "lstrip", "rstrip", "zfill", "expandtabs", 
+    "translate", "maketrans", "casefold", "translate", "maketrans"
+  ]
+}
