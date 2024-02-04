@@ -1,0 +1,5 @@
+venv/
+data/
+*.h5
+*.pkl
+*.csv
