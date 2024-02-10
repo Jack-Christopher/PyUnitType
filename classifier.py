@@ -1,5 +1,6 @@
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+import utils as ut
 
 import pickle
 import pandas as pd
@@ -13,15 +14,15 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.callbacks import EarlyStopping
 
 # Hyperparameters
-MAX_SEQUENCE_LENGTH = 100
-EMBEDDING_DIM = 200
-LSTM_UNITS = 100
-DENSE_UNITS = 50
-EPOCHS = 20
-BATCH_SIZE = 200
+MAX_SEQUENCE_LENGTH = 128
+EMBEDDING_DIM = 512
+LSTM_UNITS = 256
+DENSE_UNITS = 128
+EPOCHS = 25
+BATCH_SIZE = 256
 TEST_SIZE = 0.3
 LEARNING_RATE = 0.01
-DROPOUT_RATE = 0.2
+DROPOUT_RATE = 0.1
 
 def load_tokenizer(tokenizer_file_path='tokenizer.pkl'):
     with open(tokenizer_file_path, 'rb') as tokenizer_file:
@@ -56,13 +57,18 @@ def build_model(df, tokenizer, padded_sequences, label_encoder, learning_rate=LE
     # Build LSTM model with bidirectional layers
     model = Sequential()
     model.add(Embedding(input_dim=len(tokenizer.word_index) + 1, output_dim=EMBEDDING_DIM, input_length=padded_sequences.shape[1]))
+
     model.add(Bidirectional(LSTM(units=LSTM_UNITS, return_sequences=True)))
     model.add(Dropout(rate=DROPOUT_RATE))
+    
     model.add(Bidirectional(LSTM(units=LSTM_UNITS//2, return_sequences=True)))
     model.add(Dropout(rate=DROPOUT_RATE))
+    
     model.add(Bidirectional(LSTM(units=LSTM_UNITS//4)))
     model.add(Dropout(rate=DROPOUT_RATE))
+    
     model.add(Dense(units=len(label_encoder.classes_), activation='softmax'))
+
 
     # Compile the model
     optimizer = Adam(learning_rate=learning_rate)
@@ -83,7 +89,7 @@ def fit_model(model, X_train, y_train, X_test, y_test):
     return loss, accuracy
 
 
-def execute():
+def train():
     # Load data
     df, tokenizer, padded_sequences, label_encoder = load_data()
 
@@ -112,7 +118,7 @@ def iterate_model(threshold=0.9, max_iterations=100):
     i = 1
     while True:
         print(f'\n\n[INFO] Iteration {i}')
-        loss, accuracy = execute()
+        loss, accuracy = train()
         acc.append((loss, accuracy))
         if accuracy > threshold or i >= max_iterations:
             break
@@ -122,12 +128,12 @@ def iterate_model(threshold=0.9, max_iterations=100):
     print(f'Average Loss: {sum([a[0] for a in acc]) / len(acc):.4f}')
 
  
-def predict_datatype(new_data, model_name="classifier.h5", ):
+def predict_datatype(new_data, model_name="classifier.h5"):
     # Load model
     model = load_model(model_name)
     
-    tokenizer = load_tokenizer()  # Load your tokenizer (you need to implement this based on how you saved it during training)
-    label_encoder = load_label_encoder()  # Load your label encoder (you need to implement this based on how you saved it during training)
+    tokenizer = load_tokenizer() 
+    label_encoder = load_label_encoder() 
 
     # Tokenize and pad the new data
     new_data_sequences = tokenizer.texts_to_sequences(new_data)
@@ -139,28 +145,9 @@ def predict_datatype(new_data, model_name="classifier.h5", ):
     # Decode predictions to class labels
     decoded_predictions = label_encoder.inverse_transform(predictions.argmax(axis=1))
 
+    predictions = []
     # Print the final predictions
     for ops_funcs, prediction in zip(new_data, decoded_predictions):
-        print(f"Predicted Datatype: {prediction} <== ops/funcs: {ops_funcs}")
-
-
-# execute()
-iterate_model(threshold=0.92, max_iterations=50)
-
-# New data: List of operations/functions
-new_data = [
-    "['add']",
-    "['sin', 'gt', 'gt']",
-    "['add', 'range', 'add']",
-    "['round', 'cosh', 'div', 'pow', 'ne', 'gt']",
-    "['round', 'trunc', 'floor', 'pow', 'tanh', 'exp', 'div', 'le', 'ceil', 'add', 'mul']",
-    "['mod', 'lt', 'sub', 'trunc', 'floor', 'gt', 'div', 'sinh', 'fabs', 'add', 'pow', 'sqrt']",
-    "['sinh', 'mul', 'add', 'abs', 'gt', 'log', 'ceil', 'pow', 'fabs', 'le', 'trunc', 'sub']",
-    "['fabs', 'floor', 'lt', 'tanh', 'ceil', 'ne', 'mul', 'div', 'sinh', 'abs', 'eq', 'le']",
-    "['rstrip', 'center', 'strip', 'rfind', 'concat', 'isdigit', 'replace', 'find', 'expandtabs', 'ljust', 'title', 'rindex']",
-    "['isupper', 'capitalize', 'rstrip', 'isprintable', 'index', 'concat', 'isdecimal', 'strip']",
-    "['isalnum', 'split', 'lstrip', 'count', 'isprintable', 'format', 'replace', 'rstrip', 'isidentifier', 'isdigit', 'concat', 'rpartition']",
-    "['istitle', 'ljust', 'concat', 'center', 'find', 'lower', 'startswith', 'isprintable', 'isalpha', 'isspace', 'rjust', 'rindex']"
-]  
-
-# predict_datatype(new_data=new_data)
+        predictions.append((ops_funcs, prediction))
+    
+    return predictions
