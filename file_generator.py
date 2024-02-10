@@ -7,28 +7,41 @@ import utils as ut
 import constants as c
 import settings as sett
 import random_generator as rg
+import ast_parser as ap
+import classifier as cl
 
 def file_inspector(src, module_name):
     sys.path.append(src)
     the_module = __import__(module_name)
 
-    functions = {}
+    # Get a list of all attributes in the module
+    all_attributes = dir(the_module)
 
+    # Filter out functions that are defined in the module
+    defined_functions = [attr for attr in all_attributes if inspect.isfunction(getattr(the_module, attr))]
+
+    functions = {}
     for function_name, function in the_module.__dict__.items():
         if function_name != '__builtins__' and not function_name.startswith('__'):
-            functions[function_name] = function
+            if function_name in defined_functions:
+                functions[function_name] = function
+            else:
+                ut.print_info('Function: "{}" has been imported from another module. Ignoring it.'.format(function_name))
 
     ut.print_info('Number of functions in module: {}'.format(len(functions)))
+    for function_name, function in functions.items():
+        ut.print_info('Processing function: {}'.format(function_name))
 
     return functions
 
 
-def test_generator(f, typed_parameters, idx, n_functions, function_name, function):
+def test_generator(f, typed_parameters, idx, result, function_name, function):
     RG = rg.random_generator()
 
     random_inputs = []
     for i in range(len(typed_parameters)):
-        random_inputs.append(RG.generate(typed_parameters[i][1]))
+        # process the type of the parameter
+        random_inputs.append(RG.generate(typed_parameters[i][1], result))
 
     result = function(*random_inputs)
 
@@ -64,19 +77,27 @@ def file_generator(src, dst, module_name):
             # Header for each function
             f.write('\n# Tests for: {}\n\n'.format(function_name))
 
-            # Use inspect.signature to get the function's signature
             signature = inspect.signature(function)
             # Extract the parameter names and their types
             parameter_info = [(param.name, param.annotation) for param in signature.parameters.values()]
-            # Filter out parameters with no type annotation
-            typed_parameters = [(name, annotation) for name, annotation in parameter_info if annotation != inspect.Parameter.empty]
+            typed_parameters = []
+
+            result = ap.analyze(function)
+            result_dict = ap.process_result(result)
+            for name, annotation in parameter_info:
+                if annotation == inspect.Parameter.empty:
+                    ut.print_info('Parameter "{}" has no type annotation. Predicting datatype...'.format(name))
+                    # predict datatype
+                    if name in result_dict.keys():
+                        annotation = cl.predict_datatype([str(result_dict[name])])[0][1]
+                    ut.print_info('Predicted Datatype for {}: {}'.format(name, annotation))
+                typed_parameters.append((name, annotation))
+
             # print(typed_parameters)
             idx+=1
 
             for i in range(number_of_tests_per_function):
-                test_generator(f, typed_parameters, i, n_functions, function_name, function)
+                test_generator(f, typed_parameters, i, result, function_name, function)
 
         ut.print_info('File generated: {}'.format(filename))
     
-    ut.print_separator(c.LightHorizontalLine)
-
