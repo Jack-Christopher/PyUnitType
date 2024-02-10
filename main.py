@@ -8,14 +8,33 @@ import utils as ut
 import settings as sett
 import file_generator as fg
 import tester as t
+import classifier as cl
+import sampler as sm
 
 
 
 def parse_input(argv):
-    ut.print_header(header_text='AllForOne - Automatic Test Generator')
-    if len(argv) < 3:
-        print('Usage: python main.py <source_folder> <destination_folder>\n')
+    if '--sample' in argv:
+        ut.print_header(header_text='AllForOne - Sampling Mode')
+        ut.print_info('Sampling the dataset...')
+        sm.sample()
+        ut.print_info('Sampling complete.')        
+        ut.print_separator(c.DoubleHorizontalLine)
+    if '--train' in argv:
+        ut.print_header(header_text='AllForOne - Training Mode')
+        ut.print_info('Training the classifier...')
+        cl.train()
+        ut.print_info('Training complete.')        
+        ut.print_separator(c.DoubleHorizontalLine)
+    if len(argv) != 3:
+        ut.print_info('Usage: python main.py <source_folder> <destination_folder>')
+        ut.print_info('Example: python main.py /path/to/source /path/to/destination')
+
+        ut.print_info('Optional flags:')
+        ut.print_info('  --sample: Sample the dataset')
+        ut.print_info('  --train: Train the classifier')
         sys.exit(1)
+   
 
     source_folder = argv[1]
     destination_folder = argv[2]
@@ -67,4 +86,3 @@ if __name__ == '__main__':
     src, dst = parse_input(sys.argv)
     generate_tests(src, dst)
     t.run_tests(dst)
-    ut.print_separator(c.DoubleHorizontalLine)
