@@ -32,7 +32,7 @@ def sample():
     json_file_path = "types.json"
 
     # Generate random samples from the JSON file
-    random_samples = generate_random_samples(json_file_path, num_samples=100, max_sample_size=12)
+    random_samples = generate_random_samples(json_file_path, num_samples=500, max_sample_size=10)
 
     # Write samples to CSV
     write_to_csv(random_samples)

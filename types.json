@@ -26,10 +26,5 @@
     "count", "find", "rfind", "index", "rindex", 
     "isalpha", "isdigit", "isalnum", "isspace", "isdecimal", "isnumeric", "isidentifier", "isprintable", "istitle", 
     "ljust", "rjust", "center", "lstrip", "rstrip", "zfill", "expandtabs"
-  ],
-  "bytes":[
-    "decode", "fromhex", "hex", "join", "split", "strip", 
-    "format", "ljust", "rjust", "center", "lstrip", "rstrip", "zfill", 
-    "expandtabs", "translate", "maketrans", "casefold", "translate", "maketrans"
   ]
 }

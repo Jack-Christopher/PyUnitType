@@ -1,8 +1,6 @@
 import ast
 import inspect
 
-import pprint
-
 def traverse(node, arg, indent=0):
     if isinstance(node, (ast.arguments, ast.Load, ast.Store, ast.Name, ast.Pass, ast.Break, ast.Continue)):
         return []
@@ -13,7 +11,6 @@ def traverse(node, arg, indent=0):
     if children:
         for child in children:
             if isinstance(child, ast.Name) and child.id == arg:
-                # print("found arg: ", child.id, " in ", node)
                 content.append(node)
             else:
                 content += traverse(child, arg, indent + 2)
@@ -49,7 +46,6 @@ def analyze(func):
     # annotations = func.__annotations__
     
     args = list(inspect.signature(func).parameters.keys())
-    # print("args:", args)
 
     result = {}
     for arg in args:
@@ -71,11 +67,7 @@ def analyze(func):
 
             sub_content['type'] = type(node).__name__
             temp.append(sub_content)
-            # print()
         result[arg] = temp
-
-    # pprint.pprint(result)
-
 
     return result
 

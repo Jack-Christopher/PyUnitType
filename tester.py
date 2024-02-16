@@ -1,13 +1,19 @@
 import os
-import pytest
 
 def run_tests(dst):
-    """ Iterate over all files in dst and run all files 
-    matching the pattern 'test_*.py' """
+    current_directory = os.path.dirname(os.path.realpath(__file__))
 
-    for filename in os.listdir(dst):
-        if filename.startswith('test_') and filename.endswith('.py'):
-          pytest.main([os.path.join(dst, filename)])
+    tests_path = os.path.join(current_directory, dst)
 
-if __name__ == '__main__':
-    run_tests()
+    print(f'Running tests from {tests_path}')
+
+    file_paths = []
+
+    for file_name in os.listdir(tests_path):
+        if file_name.startswith('test_') and file_name.endswith('.py'):
+            test_file_path = os.path.join(tests_path, file_name)
+
+            print(f'Running coverage for {file_name}')
+            file_paths.append(test_file_path)
+
+    os.system(f'coverage run -m pytest {" ".join(file_paths)}')

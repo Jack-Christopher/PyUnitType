@@ -1,79 +1,91 @@
+from z3 import *
 from random import randint, uniform, choice
-import datetime
+from string import ascii_lowercase, ascii_uppercase
 
-class random_generator:
+MIN_INT = -1000
+MAX_INT = 1000
+MIN_STR_LEN = 1
+MAX_STR_LEN = 10
+
+class RandomGenerator:
     def __init__(self):
-        self.ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
-        self.ascii_uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-        self.chars = self.ascii_lowercase + self.ascii_uppercase + ' '
+        self.chars = ascii_lowercase + ascii_uppercase
 
-    def get_integer(self, min_value, max_value):
-        return randint(min_value, max_value)
+    def generate(self, data_type, constraints=[], kind=None):
+        if kind is None:
+            kind = choice(['meet', 'dont meet'])
 
-    def get_float(self, min_value, max_value):
-        return uniform(min_value, max_value)
-
-    def get_string(self, min_chars, max_chars):
-        return ''.join(choice(self.chars) for i in range(randint(min_chars, max_chars)))
-
-    def get_char(self):
-        return choice(self.ascii_lowercase + self.ascii_uppercase)
-
-    def get_boolean(self):
-        return choice([True, False])
-
-    def get_complex(self, min_value, max_value):
-        return complex(uniform(min_value, max_value), uniform(min_value, max_value))
-
-    def get_date(self, min_year, max_year):
-        return datetime.date(randint(min_year, max_year), randint(1, 12), randint(1, 28))
-
-    def get_time(self):
-        return datetime.time(randint(0, 23), randint(0, 59), randint(0, 59))
-
-    def get_email(self, min_chars, max_chars):
-        return self.get_string(min_chars, max_chars) + '@' + self.get_string(min_chars, max_chars) + '.com'
-
-    def generate(self, element_type, *extra_args):
-        if element_type == int:
-            if len(extra_args) != 2:
-                extra_args = (-100, 100)
-            return self.get_integer(*extra_args)
-        elif element_type == float:
-            if len(extra_args) != 2:
-                extra_args = (-100.0, 100.0)
-            return self.get_float(*extra_args)
-        elif element_type == str:
-            if len(extra_args) != 2:
-                extra_args = (1, 10)
-            return self.get_string(*extra_args)
-        elif element_type == bool:
-            return self.get_boolean()
-        elif element_type == complex:
-            if len(extra_args) != 2:
-                extra_args = (-100.0, 100.0)
-            return self.get_complex(*extra_args)
-        elif element_type == datetime.date:
-            if len(extra_args) != 2:
-                extra_args = (1900, 2020)
-            return self.get_date(*extra_args)
-        elif element_type == datetime.time:
-            return self.get_time()
-        elif element_type == datetime.datetime:
-            return datetime.datetime.combine(self.get_date(*extra_args), self.get_time())
+        if data_type == int or data_type == 'int':
+            return self.generate_int(constraints, kind)
+        elif data_type == float or data_type == 'float':
+            return self.generate_float(constraints, kind)
+        elif data_type == str or data_type == 'str':
+            return self.generate_string(constraints, kind)
+        elif data_type == bool or data_type == 'bool':
+            return self.generate_boolean(constraints, kind)
         else:
-            raise Exception('Invalid type: {}'.format(element_type))
+            raise ValueError("Unsupported data type")
 
-    def get_list(self, min_size, max_size, element_type, extra_args):
-        return [self.generate(element_type, *extra_args) for i in range(randint(min_size, max_size))]
 
-    def get_map(self, min_size, max_size, key_type, value_type, key_args, value_args):
-        return {self.generate(key_type, *key_args): self.generate(value_type, *value_args) for i in range(randint(min_size, max_size))}
+    def generate_int(self, constraints=[], kind='meet'):
+        while True:
+            value = randint(MIN_INT, MAX_INT)
+            satisfies_constraints = self.satisfies_constraints(value, constraints, int)
+            if self.check_constraints(value, satisfies_constraints, kind) is not None:
+                return value
+                
+    def generate_float(self, constraints=[], kind='meet'):
+        while True:
+            value = round(uniform(MIN_INT, MAX_INT), 3)
+            satisfies_constraints = self.satisfies_constraints(value, constraints, float)
+            if self.check_constraints(value, satisfies_constraints, kind) is not None:
+                return value
+            
+    def generate_string(self, constraints=[], kind='meet'):
+        while True:
+            value =  ''.join(choice(self.chars) for _ in range(randint(MIN_STR_LEN, MAX_STR_LEN)))
+            satisfies_constraints = self.satisfies_constraints(value, constraints, str)
+            if self.check_constraints(value, satisfies_constraints, kind) is not None:
+                return value
 
-    def get_tuple(self, size, *element_types):
-        return tuple(self.generate(element_type) for element_type in element_types)
+    def generate_boolean(self, constraints=[], kind='meet'):
+        while True:
+            value = choice([True, False])
+            satisfies_constraints = self.satisfies_constraints(value, constraints, bool)
+            if self.check_constraints(value, satisfies_constraints, kind) is not None:
+                return value
 
-    def get_set(self, min_size, max_size, element_type, extra_args):
-        return {self.generate(element_type, *extra_args) for i in range(randint(min_size, max_size))}
 
+    def satisfies_constraints(self, value, z3_constraints, value_type):
+        solver = Solver()
+        solver.add(z3_constraints)
+
+        # Create a Z3 expression for the concrete value
+        concrete_value = self.create_z3_value(value, value_type)
+        solver.add(concrete_value)
+
+        return solver.check() == sat
     
+    
+    def check_constraints(self, value, satisfies_constraints, kind='meet'):
+        if kind == 'meet' and satisfies_constraints:
+                return value
+        elif kind == 'dont meet' and not satisfies_constraints:
+            return value
+        else:
+            return None
+
+
+    def create_z3_value(self, value, value_type):
+        if value_type == int:
+            return Int('x') == value
+        elif value_type == float:
+            return Real('x') == value
+        elif value_type == str:
+            return String('x') == value
+        elif value_type == bool:
+            return Bool('x') == value
+        else:
+            raise ValueError("Unsupported value type")
+
+

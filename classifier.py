@@ -2,6 +2,7 @@ import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 import utils as ut
 
+import time
 import pickle
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -12,6 +13,7 @@ from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.callbacks import EarlyStopping
+import tensorflow as tf
 
 # Hyperparameters
 MAX_SEQUENCE_LENGTH = 128
@@ -22,7 +24,7 @@ EPOCHS = 25
 BATCH_SIZE = 256
 TEST_SIZE = 0.3
 LEARNING_RATE = 0.01
-DROPOUT_RATE = 0.1
+DROPOUT_RATE = 0.2
 
 def load_tokenizer(tokenizer_file_path='tokenizer.pkl'):
     with open(tokenizer_file_path, 'rb') as tokenizer_file:
@@ -74,6 +76,9 @@ def build_model(df, tokenizer, padded_sequences, label_encoder, learning_rate=LE
     optimizer = Adam(learning_rate=learning_rate)
     model.compile(optimizer=optimizer, loss='sparse_categorical_crossentropy', metrics=['accuracy'])
 
+    # Print model architecture
+    tf.keras.utils.plot_model(model, to_file='lstm_model.png', show_shapes=True, dpi=64)
+
     return model, X_train, y_train, X_test, y_test
 
 
@@ -84,12 +89,13 @@ def fit_model(model, X_train, y_train, X_test, y_test):
 
     # Evaluate the model
     loss, accuracy = model.evaluate(X_test, y_test)
-    print(f'Test Accuracy: {accuracy * 100:.2f}%')
+    ut.print_info(f'[TEST] Accuracy: {accuracy * 100:.2f}%')
 
     return loss, accuracy
 
 
 def train():
+    start = time.time()
     # Load data
     df, tokenizer, padded_sequences, label_encoder = load_data()
 
@@ -109,25 +115,15 @@ def train():
 
     # Save model to h5 file
     model.save('classifier.h5')
+    
+    end = time.time()
+
+    # format in minutes and seconds
+    ut.print_info(f'Training time: {int((end - start) / 60)} minutes {int((end - start) % 60)} seconds')
 
     return loss, accuracy
 
 
-def iterate_model(threshold=0.9, max_iterations=100):
-    acc = []
-    i = 1
-    while True:
-        print(f'\n\n[INFO] Iteration {i}')
-        loss, accuracy = train()
-        acc.append((loss, accuracy))
-        if accuracy > threshold or i >= max_iterations:
-            break
-        i += 1
-
-    print(f'Average Accuracy: {sum([a[1] for a in acc]) / len(acc) * 100:.2f}%')
-    print(f'Average Loss: {sum([a[0] for a in acc]) / len(acc):.4f}')
-
- 
 def predict_datatype(new_data, model_name="classifier.h5"):
     # Load model
     model = load_model(model_name)
@@ -146,7 +142,7 @@ def predict_datatype(new_data, model_name="classifier.h5"):
     decoded_predictions = label_encoder.inverse_transform(predictions.argmax(axis=1))
 
     predictions = []
-    # Print the final predictions
+    
     for ops_funcs, prediction in zip(new_data, decoded_predictions):
         predictions.append((ops_funcs, prediction))
     

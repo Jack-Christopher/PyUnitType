@@ -9,6 +9,7 @@ import settings as sett
 import random_generator as rg
 import ast_parser as ap
 import classifier as cl
+import symbolic_executer as se
 
 def file_inspector(src, module_name):
     sys.path.append(src)
@@ -36,25 +37,43 @@ def file_inspector(src, module_name):
 
 
 def test_generator(f, typed_parameters, idx, result, function_name, function):
-    RG = rg.random_generator()
+    RG = rg.RandomGenerator()
 
-    random_inputs = []
+    # iterate over parameters to generate random inputs constrained by the result of the symbolic execution
     for i in range(len(typed_parameters)):
-        # process the type of the parameter
-        random_inputs.append(RG.generate(typed_parameters[i][1], result))
+        # ut.print_info('Generating random {} parameter: {}'.format(typed_parameters[i][1], typed_parameters[i][0])) 
+        constraints = se.build_constraints_from_dict(typed_parameters[i][1], result)
+        # delete all repeated constraints
+        constraints = list(set(constraints))
 
-    result = function(*random_inputs)
+        # fulfill constraints
+        if constraints:
+            for c_idx, c in enumerate(constraints):
+                # ut.print_info('Constraint: {} for parameter: {}'.format(c, typed_parameters[i][0]))
 
-    var_idx = 0
-    f.write('def test_{}_{}():\n'.format(function_name, idx))
-    for var_name, var_type in typed_parameters:
-        if var_type == str:
-            f.write('    var_{} = \'{}\'\n'.format(var_idx, random_inputs[var_idx]))
-        else:
-            f.write('    var_{} = {}\n'.format(var_idx, random_inputs[var_idx]))
-        var_idx += 1
-    f.write('    result = module_0.{}({})\n'.format(function_name, ', '.join(['var_{}'.format(i) for i in range(len(typed_parameters))])))
-    f.write('    assert result == {}\n\n'.format(result))
+                random_inputs = []
+                # accumulate random inputs
+                for j in range(len(typed_parameters)):
+                    if typed_parameters[j][0] == typed_parameters[i][0]:
+                        random_inputs.append(RG.generate(typed_parameters[i][1], c, kind='meet'))
+                    else:
+                        random_inputs.append(RG.generate(typed_parameters[j][1], [], kind='meet'))
+
+                output = function(*random_inputs)
+
+                var_idx = 0
+                temp = str(c).replace('\n', ' ')
+                f.write('# Test case for constraint: {}\n'.format(temp))
+                test_name = 'test_{}_idx{}_{}{}_constr{}'.format(function_name, idx, typed_parameters[i][0], i, c_idx)
+                f.write('def {}():\n'.format(test_name))
+                for var_name, var_type in typed_parameters:
+                    if var_type == str:
+                        f.write('    var_{} = \'{}\'\n'.format(var_idx, random_inputs[var_idx]))
+                    else:
+                        f.write('    var_{} = {}\n'.format(var_idx, random_inputs[var_idx]))
+                    var_idx += 1
+                f.write('    result = module_0.{}({})\n'.format(function_name, ', '.join(['var_{}'.format(i) for i in range(len(typed_parameters))])))
+                f.write('    assert result == {}\n\n'.format(output))
 
 
 def file_generator(src, dst, module_name):
@@ -62,13 +81,17 @@ def file_generator(src, dst, module_name):
     settings = sett.get_settings(src)
     number_of_tests_per_function = settings['number_of_tests_per_function']
     filename = os.path.join(dst, 'test_{}.py'.format(module_name))
-    n_functions = len(functions)
+    # n_functions = len(functions)
     
     with open(filename, 'w') as f:
         f.write(c.HeaderText)
+        f.write('import os\n')
         f.write('import sys\n')
         f.write('import pytest\n')
         f.write('sys.path.append(\'../\')\n')
+        f.write("sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))\n")
+
+
 
         f.write('import {} as module_0\n\n'.format(module_name))
 
@@ -93,7 +116,6 @@ def file_generator(src, dst, module_name):
                     ut.print_info('Predicted Datatype for {}: {}'.format(name, annotation))
                 typed_parameters.append((name, annotation))
 
-            # print(typed_parameters)
             idx+=1
 
             for i in range(number_of_tests_per_function):
